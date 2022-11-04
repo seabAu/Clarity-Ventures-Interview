@@ -1,61 +1,158 @@
-const CheckoutForm = (props: any): JSX.Element => {
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router";
+import {
+    BrowserRouter,
+    BrowserRouter as Router,
+    Link,
+    Location,
+} from "react-router-dom";
+
+// Import dummy data.
+// import productData from "../Data/Products";
+
+interface Product {
+    _id: number;
+    name: string;
+    brand: string;
+    description: string;
+    price: number;
+    quantity: number;
+    stock: number;
+    image: string;
+}
+
+const CheckoutForm = ( props: any ): JSX.Element =>
+{
+    const productData = useLocation().state as Product[];
+
+    const [ code, setCode ] = useState( 0 );
+    const [promos, setPromos] = useState([
+        {
+            code: "EXAMPLECODE",
+            discount: 5,
+            active: true,
+        },
+        {
+            code: "EXAMPLECODE2",
+            discount: 15,
+            active: false,
+        },
+    ] );
+    
+    function handlePromoChange(event: React.ChangeEvent<HTMLInputElement>): void {
+        const newcode = event.target.value;
+        
+        promos.forEach( (promo, promoIndex) => {
+            if ( promo.code === newcode )
+            {
+                setCode( promoIndex ); // Valid code, set code state to its index. 
+                return;
+            }
+        } );
+    }
+
+    function handlePromoSubmit(event: React.FormEvent<HTMLFormElement>): void {
+        event.preventDefault();
+        if (code !== null && code > -1) {
+            const promoCodeSelected = promos[code].code;
+            let temp = promos;
+            temp.forEach((promo) => {
+                if (promo.code === promoCodeSelected) {
+                    promo.active = !promo.active;
+                }
+            });
+            setPromos(temp);
+        }
+    }
+    
+    function getTotal(): number {
+        // Run through each product and add up the price.
+        let total: number = 0;
+        productData.forEach((product) => {
+            total += product.price * product.quantity;
+        } );
+        // Sum up discounts.
+        let promoTotal: number = 0;
+        promos.forEach( ( promo ) =>
+        {
+            promo.active ? promoTotal += promo.discount : promoTotal += 0;
+        })
+        return total - promoTotal;
+    }
+
+    function updatePromos( newcode: string ) {
+        // Just for now, toggle whether the provided code's promo is active or not. 
+        if ( newcode !== null && newcode !== '' )
+        {
+            let temp = promos;
+            temp.forEach( (promo) => {
+                if (promo.code === newcode) {
+                    promo.active = !promo.active;
+                }
+            } );
+            setPromos( temp );
+        }
+    }
+
     return (
         <div className="container">
             <div className="row">
                 <div className="col-md-4 order-md-2 mb-4">
                     <h4 className="d-flex justify-content-between align-items-center mb-3">
-                        <span className="text-muted">Your cart</span>
+                        <span className="text-muted">{productData.length}</span>
                         <span className="badge badge-secondary badge-pill">
                             3
                         </span>
                     </h4>
                     <ul className="list-group mb-3">
-                        <li className="list-group-item d-flex justify-content-between lh-condensed">
-                            <div>
-                                <h6 className="my-0">Product name</h6>
-                                <small className="text-muted">
-                                    Brief description
-                                </small>
-                            </div>
-                            <span className="text-muted">$12</span>
-                        </li>
-                        <li className="list-group-item d-flex justify-content-between lh-condensed">
-                            <div>
-                                <h6 className="my-0">Second product</h6>
-                                <small className="text-muted">
-                                    Brief description
-                                </small>
-                            </div>
-                            <span className="text-muted">$8</span>
-                        </li>
-                        <li className="list-group-item d-flex justify-content-between lh-condensed">
-                            <div>
-                                <h6 className="my-0">Third item</h6>
-                                <small className="text-muted">
-                                    Brief description
-                                </small>
-                            </div>
-                            <span className="text-muted">$5</span>
-                        </li>
-                        <li className="list-group-item d-flex justify-content-between bg-light">
-                            <div className="text-success">
-                                <h6 className="my-0">Promo code</h6>
-                                <small>EXAMPLECODE</small>
-                            </div>
-                            <span className="text-success">-$5</span>
-                        </li>
+                        {productData.map((product, productIndex) => {
+                            return (
+                                <li className="list-group-item d-flex justify-content-between lh-condensed">
+                                    <div>
+                                        <h6 className="my-0">{product.name}</h6>
+                                        <small className="text-muted">
+                                            {product.description}
+                                        </small>
+                                    </div>
+                                    <span className="text-muted">
+                                        {product.quantity}
+                                        <small> x </small>${product.price}
+                                    </span>
+                                </li>
+                            );
+                        })}
+                        { promos.map( ( promo ) =>
+                        {
+                            if ( promo.active ) {
+                                return (
+                                    <li className="list-group-item d-flex justify-content-between bg-light">
+                                        <div className="text-success">
+                                            <h6 className="my-0">Promo code</h6>
+                                            <small>{promo.code}</small>
+                                        </div>
+                                        <span className="text-success">
+                                            -${promo.discount}
+                                        </span>
+                                    </li>
+                                );
+                            } else
+                            { 
+                                return (<></>);
+                            }
+                        })}
                         <li className="list-group-item d-flex justify-content-between">
                             <span>Total (USD)</span>
-                            <strong>$20</strong>
+                            <strong>${getTotal()}</strong>
                         </li>
                     </ul>
 
-                    <form className="card p-2">
+                    <form className="card p-2" onSubmit={(e) => handlePromoSubmit(e)}>
                         <div className="input-group">
                             <input
                                 type="text"
                                 className="form-control"
                                 placeholder="Promo code"
+                                onChange={handlePromoChange}
                             />
                             <div className="input-group-append">
                                 <button

@@ -1,3 +1,7 @@
+import React, { useState, useEffect } from "react";
+import { BrowserRouter, BrowserRouter as Router, Link } from "react-router-dom";
+
+// Import icons.
 import {
     faShareAlt,
     faShoppingCart,
@@ -5,40 +9,44 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-import { BrowserRouter as Router, Link } from "react-router-dom";
-
-import React, { useState } from "react";
+// Import dummy data.
+import productData from "../Data/Products";
 
 const ShoppingCartPanel = (props: any): JSX.Element => {
-    const [products, setProducts] = useState([
-        {
-            name: "Product A",
-            description: "Product Description Here",
-            price: 25.0,
-            quantity: 2,
-        },
-        {
-            name: "Product B",
-            description: "Product Description Here",
-            price: 25.0,
-            quantity: 1,
-        },
-    ]);
+    // Use a local array of objects as dummy data for the products without a backend.
+    // Todo: Be able to access this on other components as well. Might need a separate component or state file.
+    const [products, setProducts] = useState(productData);
+    const [total, setTotal] = useState(0);
+    useEffect(() => {
+        setTotal(getTotal());
+    }, []);
 
     function deleteProduct(productIndex: number): void {
         // products = products.filter((_, index) => index !== productIndex);
         setProducts(products.filter((_, index) => index !== productIndex));
     }
 
-    function getTotal (): number
-    {
+    function setQuantity(productId: number, quantity: any): void {
+        // Update the quantity of the given product number then recalculate the total.
+        console.log(productId, quantity);
+        if (quantity !== null) {
+            let temp = products;
+            temp.forEach((product) => {
+                if (product._id === productId) {
+                    product.quantity = quantity;
+                }
+            });
+            setProducts(temp);
+            setTotal(getTotal());
+        }
+    }
+
+    function getTotal(): number {
         // Run through each product and add up the price.
         let total: number = 0;
-        products.forEach( ( product ) =>
-            {
-                total += product.price * product.quantity;
-            }
-        );
+        products.forEach((product) => {
+            total += product.price * product.quantity;
+        });
         return total;
     }
 
@@ -97,7 +105,7 @@ const ShoppingCartPanel = (props: any): JSX.Element => {
                                                 <div className="col-6 text-end">
                                                     <h6>
                                                         <strong>
-                                                            {product.price}{" "}
+                                                            ${product.price}{" "}
                                                             <span className="text-muted">
                                                                 x
                                                             </span>
@@ -106,10 +114,18 @@ const ShoppingCartPanel = (props: any): JSX.Element => {
                                                 </div>
                                                 <div className="col-4">
                                                     <input
-                                                        type="text"
+                                                        type="number"
+                                                        min="0"
+                                                        max={product.stock}
                                                         className="form-control input-sm"
                                                         defaultValue={
                                                             product.quantity
+                                                        }
+                                                        onChange={(e) =>
+                                                            setQuantity(
+                                                                product._id,
+                                                                e.target.value,
+                                                            )
                                                         }
                                                     />
                                                 </div>
@@ -154,15 +170,17 @@ const ShoppingCartPanel = (props: any): JSX.Element => {
                             <div className="row text-center align-items-center">
                                 <div className="col-9">
                                     <h4 className="text-end mb-0 h5">
-                                        Total <strong>${getTotal()}</strong>
+                                        Total <strong>${total}</strong>
                                     </h4>
                                 </div>
                                 <div className="col-3">
-                                    <a
-                                        href="/checkout"
-                                        className="btn btn-success w-100">
+                                    <Link
+                                        to="/checkout"
+                                        state={ products }
+                                        className="btn btn-success w-100"
+                                    >
                                         Checkout
-                                    </a>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
